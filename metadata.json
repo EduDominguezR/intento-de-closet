@@ -1,0 +1,6 @@
+{
+  "name": "Closetly",
+  "description": "Closet digital inteligente y armador de outfits sobre avatar 2D personalizable.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

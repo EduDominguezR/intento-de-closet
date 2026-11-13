@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 620" fill="none">
+  <rect width="320" height="620" fill="none" />
+  <g id="avatar-shadow">
+    <ellipse cx="160" cy="592" rx="64" ry="12" fill="#E6E0F8" opacity="0.65" />
+  </g>
+  <g id="avatar-hair-back">
+    <path d="M126 68 C110 80 108 118 118 142 C132 148 188 148 202 142 C212 118 210 80 194 68 Z" fill="#5A4338" />
+  </g>
+  <g id="avatar-body">
+    <rect x="148" y="128" width="24" height="32" rx="10" fill="#E8B89A" />
+    <path d="M114 166 C114 156 134 152 160 152 C186 152 206 156 206 166 L216 254 C218 266 204 270 198 258 L192 198 L188 282 L198 352 C198 372 192 430 184 554 C183 568 168 568 166 554 L162 396 L158 396 L154 554 C152 568 137 568 136 554 C128 430 122 372 122 352 L132 282 L128 198 L122 258 C116 270 102 266 104 254 Z" fill="#E8B89A" />
+  </g>
+  <g id="avatar-head">
+    <ellipse cx="160" cy="96" rx="30" ry="37" fill="#E8B89A" />
+    <circle cx="149" cy="95" r="2.6" fill="#4A4458" />
+    <circle cx="171" cy="95" r="2.6" fill="#4A4458" />
+    <path d="M153 111 Q160 116 167 111" stroke="#4A4458" stroke-width="2.2" stroke-linecap="round" />
+  </g>
+  <g id="avatar-hair-front">
+    <path d="M128 84 C132 54 188 54 192 84 C182 70 140 70 128 84 Z" fill="#5A4338" />
+  </g>
+  <g id="avatar-basewear">
+    <path d="M130 176 L190 176 L186 242 L134 242 Z" fill="#FFFBFD" opacity="0.72" />
+    <path d="M128 310 L192 310 L196 360 L164 360 L160 344 L156 360 L124 360 Z" fill="#FFFBFD" opacity="0.72" />
+  </g>
+</svg>

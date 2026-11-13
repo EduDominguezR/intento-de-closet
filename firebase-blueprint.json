@@ -1,0 +1,326 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil del usuario autenticado y configuración paramétrica de su avatar 2D.",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Nombre visible del usuario."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160,
+          "description": "Correo electrónico del usuario."
+        },
+        "avatarConfig": {
+          "type": "object",
+          "description": "Parámetros del avatar 2D, 3D y Foto (piel, cabello {style, color}, complexión, estatura, renderer '2d'|'3d'|'photo')."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de creación en el servidor."
+        }
+      },
+      "required": ["displayName", "email", "createdAt"]
+    },
+    "Garment": {
+      "title": "Garment",
+      "description": "Prenda digitalizada del closet virtual del usuario.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID del propietario."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Nombre de la prenda."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["top", "bottom", "dress", "outerwear", "shoes", "accessory"],
+          "description": "Categoría principal."
+        },
+        "accessorySlot": {
+          "type": "string",
+          "enum": ["head", "neck", "hand"],
+          "description": "Subslot obligatorio únicamente cuando category es accessory."
+        },
+        "subcategory": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "brand": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "dominantColor": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "minLength": 7,
+          "maxLength": 7
+        },
+        "season": {
+          "type": "array",
+          "description": "Máximo 4 temporadas."
+        },
+        "occasion": {
+          "type": "array",
+          "description": "Máximo 5 ocasiones."
+        },
+        "tags": {
+          "type": "array",
+          "description": "Máximo 15 etiquetas de hasta 30 caracteres."
+        },
+        "imageFullPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "imageThumbPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "cutoutPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "template3d": {
+          "type": "string",
+          "maxLength": 30,
+          "enum": ["tshirt", "longsleeve", "jacket", "pants", "shorts", "skirt", "dress", "shoes"],
+          "description": "Plantilla 3D aproximada asignada a la prenda."
+        },
+        "glbUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Reservado Fase 3: modelo 3D aislado."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "category",
+        "dominantColor",
+        "season",
+        "occasion",
+        "tags",
+        "imageFullPath",
+        "imageThumbPath",
+        "cutoutPath",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Outfit": {
+      "title": "Outfit",
+      "description": "Combinación de prendas guardada por el usuario.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "occasion": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "collection": {
+          "type": "string",
+          "enum": ["work", "party", "casual", "travel", "custom"]
+        },
+        "items": {
+          "type": "array",
+          "description": "Máximo 8 prendas posicionadas por capa y slotKey."
+        },
+        "previewPath": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "lastWornOn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "wornCount": {
+          "type": "number",
+          "description": "Cantidad de usos registrados en el lookbook."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "name", "collection", "items", "createdAt"]
+    },
+    "LookbookEntry": {
+      "title": "LookbookEntry",
+      "description": "Registro privado de foto real usando un outfit guardado.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "outfitId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "outfitSnapshot": {
+          "type": "object",
+          "description": "Instantánea congelada del outfit (name, previewPath, items sin anchor/transform)."
+        },
+        "photoPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "photoThumbPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "wornOn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "consentVersion": {
+          "type": "number",
+          "description": "Versión del consentimiento aceptado (actualmente 1)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "outfitId",
+        "outfitSnapshot",
+        "photoPath",
+        "photoThumbPath",
+        "wornOn",
+        "consentVersion",
+        "createdAt"
+      ]
+    },
+    "CalendarEntry": {
+      "title": "CalendarEntry",
+      "description": "EXTENSION PHASE 2: Registro de outfit planeado en calendario.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "outfitId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        }
+      },
+      "required": ["userId", "date", "outfitId"]
+    },
+    "OutfitUse": {
+      "title": "OutfitUse",
+      "description": "EXTENSION PHASE 2: Registro de uso histórico de un outfit.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "outfitId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "wornOn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "minLength": 10,
+          "maxLength": 10
+        }
+      },
+      "required": ["userId", "outfitId", "wornOn"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Perfil privado del usuario propietario."
+    },
+    "/garments/{garmentId}": {
+      "schema": { "$ref": "#/entities/Garment" },
+      "description": "Colección plana de prendas filtrada por userId."
+    },
+    "/outfits/{outfitId}": {
+      "schema": { "$ref": "#/entities/Outfit" },
+      "description": "Colección plana de outfits filtrada por userId."
+    },
+    "/lookbook/{entryId}": {
+      "schema": { "$ref": "#/entities/LookbookEntry" },
+      "description": "Diario privado de looks reales vinculados a outfits."
+    },
+    "/calendar_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/CalendarEntry" },
+      "description": "EXTENSION PHASE 2: Entradas de calendario de outfits."
+    },
+    "/outfit_uses/{useId}": {
+      "schema": { "$ref": "#/entities/OutfitUse" },
+      "description": "EXTENSION PHASE 2: Historial de uso de outfits."
+    }
+  }
+}

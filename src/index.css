@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg-canvas: #FFFBFD;
+    --ink-primary: #4A4458;
+    --ink-secondary: #6B6580;
+    --cta-primary: #8B7FD4;
+  }
+
+  html {
+    font-family: 'Quicksand', system-ui, sans-serif;
+    background-color: #FFFBFD;
+    color: #4A4458;
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', system-ui, sans-serif;
+    color: #4A4458;
+  }
+
+  *:focus-visible {
+    outline: 2px solid #8B7FD4;
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

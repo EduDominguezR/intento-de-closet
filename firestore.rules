@@ -1,0 +1,335 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidAvatarConfig(cfg) {
+      return cfg is map
+        && cfg.keys().hasAll(['skin', 'hair', 'body', 'height', 'renderer'])
+        && cfg.keys().hasOnly(['skin', 'hair', 'body', 'height', 'renderer'])
+        && cfg.skin is string && cfg.skin.size() == 7 && cfg.skin.matches('^#[0-9a-fA-F]{6}$')
+        && (
+          (cfg.hair is map
+            && cfg.hair.keys().hasAll(['style', 'color'])
+            && cfg.hair.keys().hasOnly(['style', 'color'])
+            && cfg.hair.style is string && cfg.hair.style.size() >= 1 && cfg.hair.style.size() <= 30
+            && cfg.hair.color is string && cfg.hair.color.size() == 7 && cfg.hair.color.matches('^#[0-9a-fA-F]{6}$'))
+          || (cfg.hair is string && cfg.hair.size() >= 1 && cfg.hair.size() <= 30)
+        )
+        && cfg.body in ['slim', 'regular', 'curvy']
+        && cfg.height in ['short', 'average', 'tall']
+        // Firestore Rules no tiene enums: mantener igual a AVATAR_RENDERERS en src/lib/avatar/types.ts
+        && cfg.renderer in ['2d', '3d', 'photo'];
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['displayName', 'email', 'createdAt'])
+        && data.keys().hasOnly(['displayName', 'email', 'createdAt', 'avatarConfig'])
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && data.createdAt is timestamp
+        && (!('avatarConfig' in data) || isValidAvatarConfig(data.avatarConfig));
+    }
+
+    function isValidGarmentCategory(cat) {
+      return cat in ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'accessory'];
+    }
+
+    function isValidAccessorySlot(slot) {
+      return slot in ['head', 'neck', 'hand'];
+    }
+
+    function isValidTemplate3d(tpl) {
+      return tpl is string
+        && tpl.size() >= 1
+        && tpl.size() <= 30
+        && tpl in ['tshirt', 'longsleeve', 'jacket', 'pants', 'shorts', 'skirt', 'dress', 'shoes'];
+    }
+
+    function isValidGarment(data) {
+      return data.keys().hasAll([
+          'userId', 'name', 'category', 'dominantColor',
+          'season', 'occasion', 'tags',
+          'imageFullPath', 'imageThumbPath', 'cutoutPath',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'name', 'category', 'accessorySlot', 'subcategory', 'brand',
+          'dominantColor', 'season', 'occasion', 'tags',
+          'imageFullPath', 'imageThumbPath', 'cutoutPath', 'template3d', 'glbUrl',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && isValidGarmentCategory(data.category)
+        && (
+          (data.category == 'accessory' && 'accessorySlot' in data && isValidAccessorySlot(data.accessorySlot))
+          || (data.category != 'accessory' && !('accessorySlot' in data))
+        )
+        && (!('subcategory' in data) || (data.subcategory is string && data.subcategory.size() <= 50))
+        && (!('brand' in data) || (data.brand is string && data.brand.size() <= 50))
+        && data.dominantColor is string && data.dominantColor.size() == 7 && data.dominantColor.matches('^#[0-9a-fA-F]{6}$')
+        && data.season is list && data.season.size() <= 4
+        && (data.season.size() == 0 || (data.season[0] is string && data.season[0].size() <= 30))
+        && data.occasion is list && data.occasion.size() <= 5
+        && (data.occasion.size() == 0 || (data.occasion[0] is string && data.occasion[0].size() <= 30))
+        && data.tags is list && data.tags.size() <= 15
+        && (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 30))
+        && data.imageFullPath is string && data.imageFullPath.size() >= 1 && data.imageFullPath.size() <= 300
+        && data.imageThumbPath is string && data.imageThumbPath.size() >= 1 && data.imageThumbPath.size() <= 300
+        && data.cutoutPath is string && data.cutoutPath.size() >= 1 && data.cutoutPath.size() <= 300
+        && (!('template3d' in data) || isValidTemplate3d(data.template3d))
+        && (!('glbUrl' in data) || (data.glbUrl is string && data.glbUrl.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOutfitCollection(col) {
+      return col in ['work', 'party', 'casual', 'travel', 'custom'];
+    }
+
+    function isValidPhotoTransform(pt) {
+      return pt is map
+        && pt.keys().hasAll(['cx', 'cy', 'scale', 'rotation', 'flipX'])
+        && pt.keys().hasOnly(['cx', 'cy', 'scale', 'rotation', 'flipX'])
+        && pt.cx is number && pt.cx >= 0 && pt.cx <= 1
+        && pt.cy is number && pt.cy >= 0 && pt.cy <= 1
+        && pt.scale is number && pt.scale > 0 && pt.scale <= 5
+        && pt.rotation is number && pt.rotation >= -360 && pt.rotation <= 360
+        && pt.flipX is bool;
+    }
+
+    function isValidOutfitItem(item) {
+      return item is map
+        && item.keys().hasAll(['garmentId', 'layer', 'slotKey', 'anchor', 'transform'])
+        && item.keys().hasOnly(['garmentId', 'layer', 'slotKey', 'anchor', 'transform', 'photoTransform'])
+        && isValidId(item.garmentId)
+        && item.layer in ['shoes', 'bottom', 'top', 'outerwear', 'accessory']
+        && item.slotKey in ['shoes', 'bottom', 'top', 'outerwear', 'dress', 'acc_head', 'acc_neck', 'acc_hand']
+        && item.anchor is map
+        && item.anchor.keys().hasAll(['x', 'y'])
+        && item.anchor.keys().hasOnly(['x', 'y'])
+        && item.anchor.x is number && item.anchor.x >= 0 && item.anchor.x <= 1
+        && item.anchor.y is number && item.anchor.y >= 0 && item.anchor.y <= 1
+        && item.transform is map
+        && item.transform.keys().hasAll(['scale', 'rotation'])
+        && item.transform.keys().hasOnly(['scale', 'rotation'])
+        && item.transform.scale is number && item.transform.scale > 0 && item.transform.scale <= 5
+        && item.transform.rotation is number && item.transform.rotation >= -360 && item.transform.rotation <= 360
+        && (!('photoTransform' in item) || isValidPhotoTransform(item.photoTransform));
+    }
+
+    function isValidOutfit(data) {
+      return data.keys().hasAll(['userId', 'name', 'collection', 'items', 'createdAt'])
+        && data.keys().hasOnly([
+          'userId', 'name', 'occasion', 'collection', 'items',
+          'previewPath', 'lastWornOn', 'wornCount', 'createdAt'
+        ])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && (!('occasion' in data) || (data.occasion is string && data.occasion.size() <= 50))
+        && isValidOutfitCollection(data.collection)
+        && data.items is list && data.items.size() <= 8
+        && (data.items.size() == 0 || isValidOutfitItem(data.items[0]))
+        && (!('previewPath' in data) || (data.previewPath is string && data.previewPath.size() <= 300))
+        && (!('lastWornOn' in data) || (data.lastWornOn is string && data.lastWornOn.size() == 10 && data.lastWornOn.matches('^\\d{4}-\\d{2}-\\d{2}$')))
+        && (!('wornCount' in data) || (data.wornCount is int && data.wornCount >= 0))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidLookbookSnapshotItem(item) {
+      return item is map
+        && item.keys().hasAll(['garmentId', 'layer', 'slotKey'])
+        && item.keys().hasOnly(['garmentId', 'layer', 'slotKey'])
+        && isValidId(item.garmentId)
+        && item.layer in ['shoes', 'bottom', 'top', 'outerwear', 'accessory']
+        && item.slotKey in ['shoes', 'bottom', 'top', 'outerwear', 'dress', 'acc_head', 'acc_neck', 'acc_hand'];
+    }
+
+    function isValidLookbookSnapshot(snap) {
+      return snap is map
+        && snap.keys().hasAll(['name', 'items'])
+        && snap.keys().hasOnly(['name', 'previewPath', 'items'])
+        && snap.name is string && snap.name.size() >= 1 && snap.name.size() <= 80
+        && (!('previewPath' in snap) || (snap.previewPath is string && snap.previewPath.size() <= 300))
+        && snap.items is list && snap.items.size() <= 8
+        && (snap.items.size() == 0 || isValidLookbookSnapshotItem(snap.items[0]));
+    }
+
+    function isValidLookbookEntry(data) {
+      return data.keys().hasAll([
+          'userId', 'outfitId', 'outfitSnapshot',
+          'photoPath', 'photoThumbPath', 'wornOn',
+          'consentVersion', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'outfitId', 'outfitSnapshot',
+          'photoPath', 'photoThumbPath', 'wornOn', 'note',
+          'consentVersion', 'createdAt'
+        ])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && isValidId(data.outfitId)
+        && isValidLookbookSnapshot(data.outfitSnapshot)
+        && data.photoPath is string && data.photoPath.size() >= 1 && data.photoPath.size() <= 300
+        && data.photoPath.matches('^lookbook/' + request.auth.uid + '/[a-zA-Z0-9_\\-]+\\.webp$')
+        && data.photoThumbPath is string && data.photoThumbPath.size() >= 1 && data.photoThumbPath.size() <= 300
+        && data.photoThumbPath.matches('^lookbook/' + request.auth.uid + '/[a-zA-Z0-9_\\-]+_thumb\\.webp$')
+        && data.wornOn is string && data.wornOn.size() == 10 && data.wornOn.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && (!('note' in data) || (data.note is string && data.note.size() <= 200))
+        && data.consentVersion == 1
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCalendarEntry(data) {
+      return data.keys().hasAll(['userId', 'date', 'outfitId'])
+        && data.keys().hasOnly(['userId', 'date', 'outfitId'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && isValidId(data.outfitId);
+    }
+
+    function isValidOutfitUse(data) {
+      return data.keys().hasAll(['userId', 'outfitId', 'wornOn'])
+        && data.keys().hasOnly(['userId', 'outfitId', 'wornOn'])
+        && isValidId(data.userId)
+        && data.userId == request.auth.uid
+        && isValidId(data.outfitId)
+        && data.wornOn is string && data.wornOn.size() == 10 && data.wornOn.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    // 4. Collection Match Blocks
+    match /users/{uid} {
+      allow get: if isValidId(uid) && isOwner(uid);
+      allow list: if false;
+      allow create: if isValidId(uid)
+        && isOwner(uid)
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(uid)
+        && isOwner(uid)
+        && isValidUser(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'avatarConfig']);
+      allow delete: if isValidId(uid) && isOwner(uid);
+    }
+
+    match /garments/{garmentId} {
+      allow get: if isValidId(garmentId) && isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isValidId(garmentId)
+        && isSignedIn()
+        && isValidGarment(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(garmentId)
+        && isSignedIn()
+        && existing().userId == request.auth.uid
+        && isValidGarment(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'category', 'accessorySlot', 'subcategory', 'brand',
+          'dominantColor', 'season', 'occasion', 'tags',
+          'imageFullPath', 'imageThumbPath', 'cutoutPath', 'template3d', 'glbUrl', 'updatedAt'
+        ]);
+      allow delete: if isValidId(garmentId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /outfits/{outfitId} {
+      allow get: if isValidId(outfitId) && isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isValidId(outfitId)
+        && isSignedIn()
+        && isValidOutfit(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(outfitId)
+        && isSignedIn()
+        && existing().userId == request.auth.uid
+        && isValidOutfit(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'occasion', 'collection', 'items', 'previewPath', 'lastWornOn', 'wornCount'
+        ]);
+      allow delete: if isValidId(outfitId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /lookbook/{entryId} {
+      allow get: if isValidId(entryId) && isOwner(existing().userId);
+      allow list: if isOwner(existing().userId);
+      allow create: if isValidId(entryId)
+        && isSignedIn()
+        && isValidLookbookEntry(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(entryId)
+        && isOwner(existing().userId)
+        && isValidLookbookEntry(incoming())
+        && incoming().userId == existing().userId
+        && incoming().outfitId == existing().outfitId
+        && incoming().outfitSnapshot == existing().outfitSnapshot
+        && incoming().photoPath == existing().photoPath
+        && incoming().photoThumbPath == existing().photoThumbPath
+        && incoming().consentVersion == existing().consentVersion
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['note', 'wornOn']);
+      allow delete: if isValidId(entryId) && isOwner(existing().userId);
+    }
+
+    // EXTENSION PHASE 2: Calendar & Outfit Usage tracking (secured by ownership)
+    match /calendar_entries/{entryId} {
+      allow get: if isValidId(entryId) && isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isValidId(entryId) && isSignedIn() && isValidCalendarEntry(incoming());
+      allow update: if isValidId(entryId)
+        && isSignedIn()
+        && existing().userId == request.auth.uid
+        && isValidCalendarEntry(incoming())
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'outfitId']);
+      allow delete: if isValidId(entryId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /outfit_uses/{useId} {
+      allow get: if isValidId(useId) && isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isValidId(useId) && isSignedIn() && isValidOutfitUse(incoming());
+      allow update: if isValidId(useId)
+        && isSignedIn()
+        && existing().userId == request.auth.uid
+        && isValidOutfitUse(incoming())
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['outfitId', 'wornOn']);
+      allow delete: if isValidId(useId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

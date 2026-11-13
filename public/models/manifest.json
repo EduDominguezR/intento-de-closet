@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "avatar": {
+    "glb": null,
+    "morphTargets": {
+      "slim": "body_slim",
+      "curvy": "body_curvy",
+      "short": "height_short",
+      "tall": "height_tall"
+    }
+  },
+  "templates": {
+    "tshirt": { "glb": null, "slot": "top" },
+    "longsleeve": { "glb": null, "slot": "top" },
+    "jacket": { "glb": null, "slot": "outerwear" },
+    "pants": { "glb": null, "slot": "bottom" },
+    "shorts": { "glb": null, "slot": "bottom" },
+    "skirt": { "glb": null, "slot": "bottom" },
+    "dress": { "glb": null, "slot": "dress" },
+    "shoes": { "glb": null, "slot": "shoes" }
+  }
+}
